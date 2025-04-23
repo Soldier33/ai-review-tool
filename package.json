@@ -11,18 +11,19 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:ai-review-tool.reviewCode"
+    "onCommand:ai-review-tool.reviewCode",
+    "onCommand:ai-review-tool.reviewFile"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "ai-review-tool.reviewCode",
-        "title": "AI Review Code"
+        "title": "AI代码审查选中代码"
       },
       {
         "command": "ai-review-tool.reviewFile",
-        "title": "AI 审查当前文件代码"
+        "title": "AI代码审查当前文件"
       }
     ],
     "menus": {

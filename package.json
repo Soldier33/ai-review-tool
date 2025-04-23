@@ -24,6 +24,10 @@
       {
         "command": "ai-review-tool.reviewFile",
         "title": "AI代码审查当前文件"
+      },
+      {
+        "command": "ai-review-tool.reviewGitDiff",
+        "title": "AI代码审查 Git Diff 变更"
       }
     ],
     "menus": {
@@ -36,6 +40,11 @@
         {
           "when": "editorTextFocus",
           "command": "ai-review-tool.reviewFile",
+          "group": "navigation"
+        },
+        {
+          "when": "editorTextFocus",
+          "command": "ai-review-tool.reviewGitDiff",
           "group": "navigation"
         }
       ]
@@ -58,6 +67,20 @@
             "gpt-3.5-turbo"
           ],
           "description": "AI 模型",
+          "scope": "application"
+        },
+        "aiReviewTool.strictness": {
+          "type": "string",
+          "enum": ["low", "medium", "high"],
+          "default": "medium",
+          "description": "审查严格度，可选 low、medium 或 high",
+          "scope": "application"
+        },
+        "aiReviewTool.languagePreference": {
+          "type": "string",
+          "enum": ["en", "zh"],
+          "default": "zh",
+          "description": "审查语言偏好，可选 en 或 zh",
           "scope": "application"
         }
       }

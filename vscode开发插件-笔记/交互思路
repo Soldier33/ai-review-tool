@@ -5,3 +5,8 @@
 5. 通过CodeLens在函数上方显示综合评分。
 
 done:1
+
+
+用户后续操作
+可以在该报告中直接复制、对比、修改
+如需调出 Problems 面板或行内装饰，可结合 Diagnostic/Decoration API 进一步在原文件中定位问题

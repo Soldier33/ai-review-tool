@@ -19,6 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
 	console.log('AI Code Review Tool 已激活');
 	context.subscriptions.push(vscode.commands.registerCommand('ai-review-tool.reviewCode', reviewSelectedCode));
 	context.subscriptions.push(vscode.commands.registerCommand('ai-review-tool.reviewFile', reviewCurrentFile));
+	context.subscriptions.push(vscode.commands.registerCommand('ai-review-tool.reviewGitDiff', reviewGitDiff));
 }
 
 // This method is called when your extension is deactivated
@@ -178,4 +179,86 @@ async function emitReviewedFile(origPath: string, reviewedCode: string) {
 	const doc = await vscode.workspace.openTextDocument(out);
 	await vscode.window.showTextDocument(doc);
 	vscode.window.showInformationMessage(`审查完成：${out}`);
+}
+
+/**
+ * 获取 Git Diff（相对于 HEAD）的内容
+ */
+async function getGitDiff(filePath: string): Promise<string> {
+	const gitExtension = vscode.extensions.getExtension('vscode.git')?.exports;
+	const api = gitExtension?.getAPI(1);
+	if (!api?.repositories?.length) {
+		throw new Error('未找到 git 仓库');
+	}
+	return await api.repositories[0].diffWithHEAD(filePath);
+}
+
+/**
+ * 核心：审查 Git Diff 变更
+ */
+async function reviewGitDiff() {
+	const editor = vscode.window.activeTextEditor;
+	if (!editor) {
+		vscode.window.showInformationMessage('请先打开文件');
+		return;
+	}
+	const filePath = editor.document.fileName;
+	let diff: string;
+	try {
+		diff = await getGitDiff(filePath);
+	} catch (e) {
+		vscode.window.showErrorMessage(`获取 Git Diff 失败：${e}`);
+		return;
+	}
+	if (!diff) {
+		vscode.window.showInformationMessage('当前文件无改动');
+		return;
+	}
+	const lang = editor.document.languageId;
+	try {
+		const useHunyuan = !!(process.env.TENCENT_SECRET_ID && process.env.TENCENT_SECRET_KEY);
+		const result = await vscode.window.withProgress({
+			location: vscode.ProgressLocation.Window,
+			title: 'AI 代码审查 Git Diff…',
+			cancellable: false
+		}, async progress => {
+			progress.report({ increment: 30, message: '连接混元AI…' });
+			if (useHunyuan) {
+				const hunClient = new HunyuanClient({
+					credential: {
+						secretId: process.env.TENCENT_SECRET_ID!,
+						secretKey: process.env.TENCENT_SECRET_KEY!
+					},
+					region: process.env.TENCENT_REGION || 'ap-guangzhou'
+				});
+				const params = {
+					Model: 'hunyuan-code',
+					Messages: [{ Role: 'user', Content: `审查以下 Git Diff 变更：\n\`\`\`${lang}\n${diff}\n\`\`\`` }],
+					Stream: false
+				};
+				const res = await hunClient.ChatCompletions(params);
+				return res.Choices?.[0]?.Message?.Content || '';
+			} else {
+				progress.report({ increment: 30, message: '连接 OpenAI…' });
+				const { client: openai, model } = await getOpenAIClient();
+				const prompt = `请审查以下 Git Diff 变更：\n\`\`\`${lang}\n${diff}\n\`\`\``;
+				const resp = await openai.chat.completions.create({
+					model,
+					messages: [
+						{ role: 'system', content: '你是一名代码审查专家。' },
+						{ role: 'user', content: prompt }
+					],
+					temperature: 0.2,
+					max_tokens: 4096
+				});
+				progress.report({ increment: 70, message: '接收结果…' });
+				return resp.choices[0].message.content || '';
+			}
+		});
+		console.log(result);
+		const doc = await vscode.workspace.openTextDocument({ content: result, language: lang });
+		await vscode.window.showTextDocument(doc);
+	} catch (e) {
+		vscode.window.showErrorMessage(`审查失败：${e}`);
+	}
 }

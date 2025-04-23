@@ -1,0 +1,47 @@
+有三个：
+Codiga – AI Code Reviews (codiga.codiga)
+• 多语言支持（JS/TS、Python、Java、Go…）
+• 基于机器学习的模式识别，自动标记安全漏洞、性能和可维护性问题
+• 提供可配置的团队规则，引入 PR 前自动 review
+
+
+
+Sourcegraph Cody (sourcegraph.cody-vscode)
+• 嵌入式 AI 聊天式助手，可上下文地分析整个 repo
+• 支持「审查这段函数有何问题？」、「帮我重构这段逻辑」等自然语言指令
+• 利用大规模语言模型快速给出注释、测试用例和重构思路
+
+
+ChatGPT / CodeGPT 系列（如 “ChatGPT – Genie AI”）
+• 直接在编辑器中调用 OpenAI GPT-3.5/4，针对选中代码生成 review 评论
+• 可以批量插入 TODO、改进建议，或者给出完整的重构示例
+• 社区有多种变体（CodeGPT、ChatGPT Writer 等），各自侧重点略有差异
+
+
+Codiga详细内容：
+
+安装并登录
+在扩展市场安装 “Codiga – AI Code Reviews”
+首次使用时，通过插件面板输入 API token（或扫码登录），会将你的仓库和团队规则同步到本地
+触发扫描／审查
+你可以在命令面板（⇧⌘P）里执行 “Codiga: Review workspace” 对整个项目做一次全量扫描
+也可以在打开单个文件时，右键选择 “Codiga: Review current file” 仅对当前文件做 AI 分析
+支持配置成「文件保存后自动扫描」，或基于 Git Diff 只分析改动行
+在“Problems”面板和“Codiga”侧边栏查看结果
+分析完成后，所有检测到的代码问题会像 ESLint 一样出现在 VS Code 的 Problems（问题）面板里
+同时在活动栏会出现一个 “Codiga” 图标，点击打开后，你能看到：
+• 按规则分类（安全/性能/可读性…）的 Issue 列表
+• 每条 Issue 的严重级别（Error/Warning/Info）
+• 简要描述 + 链接到官方文档的「深度解读」
+应用或忽略建议
+在列表里点某条 Issue，会跳转到代码相应位置，并给出“Quick Fix”按钮
+点击 Quick Fix 就能一键插入自动生成的修复补丁，或者复制完整 Patch 到剪贴板
+如果是误报，也可以在 Issue 上右键「Ignore this rule/file/line」
+所有操作都会同步更新到侧边栏 Dashboard，team rules 的统计数据也会随之变化
+报表与 CI 集成（可选）
+Codiga 插件还内置了一个质量概览 Dashboard，展示全项目的漏洞分布和趋势图
+如果你在 CI（比如 GitHub Actions）里也集成了 Codiga，PR 会自动带上审查报告的评论，和本地 VS Code 内看到的完全一致
+底层原理简述
+本地插件先做静态规则匹配，然后把 AST + 代码片段上传给 Codiga 云端服务
+云端用机器学习模型（pattern mining + 行为聚类）进一步定位复杂漏洞或代码异味
+检测结果结构化后，通过 VS Code 插件返回给编辑器，并渲染成 Problems / Quick Fix 等原生 UI

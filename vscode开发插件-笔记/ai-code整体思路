@@ -1,0 +1,236 @@
+graph TD
+  A[AI 代码审查功能模块] --> B[代码捕获]
+  A --> C[AI 分析]
+  A --> D[结果展示]
+  
+  B --> B1[当前文件/选区]
+  B --> B2[批量文件]
+  B --> B3[Git Diff 对比]
+
+  C --> C1[OpenAI API]
+  C --> C2[本地LLM模型]
+  C --> C3[预设规则库]
+
+  D --> D1[行内注解]
+  D --> D2[问题面板]
+  D --> D3[综合评分]
+
+
+
+2. 核心功能模块开发
+
+2.1 代码捕捉模块
+
+typescript
+// 获取当前编辑器内容
+const getCurrentCode = () => {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) return '';
+  return editor.document.getText();
+};
+
+// 获取Git Diff（需集成git extension API）
+const getGitDiff = async (filePath: string) => {
+  const gitExtension = vscode.extensions.getExtension('vscode.git')?.exports;
+  const repo = gitExtension?.getAPI(1).repositories[0];
+  return await repo.diffWithHEAD(filePath);
+};
+2.2 AI 接口封装
+
+typescript
+// OpenAI 接口封装示例（需安装axios）
+import axios from 'axios';
+
+const analyzeCodeWithAI = async (code: string) => {
+  const prompt = `
+  请进行专业代码审查，按以下格式回应：
+  【问题类型】描述
+  [严重级别] high/medium/low
+  [建议] 优化方案 
+
+  待审查代码：
+  ${code}
+  `;
+
+  const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+    model: "gpt-4-turbo",
+    messages: [{
+      role: "user", 
+      content: prompt
+    }]
+  }, {
+    headers: {
+      'Authorization': `Bearer ${process.env.OPENAI_KEY}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  return parseAIResponse(response.data.choices[0].message.content);
+};
+
+// 解析AI输出
+const parseAIResponse = (text: string) => {
+  const regex = /【(.*?)】([\s\S]*?)(?=【|$)/g;
+  const results = [];
+  let match;
+  
+  while ((match = regex.exec(text)) !== null) {
+    const [, type, content] = match;
+    const levelMatch = content.match(/$$严重级别$$\s*(.+)/);
+    const suggestionMatch = content.match(/$$建议$$\s*(.+)/);
+    
+    results.push({
+      type: type.trim(),
+      level: levelMatch?.[1] || 'medium',
+      suggestion: suggestionMatch?.[1] || ''
+    });
+  }
+  return results;
+};
+2.3 代码展示组件
+
+诊断装饰器（行内标注）​
+
+typescript
+const createDiagnostics = (results: any[], document: vscode.TextDocument) => {
+  const diagnostics: vscode.Diagnostic[] = [];
+  
+  results.forEach(result => {
+    const range = new vscode.Range(
+      new vscode.Position(0, 0), 
+      new vscode.Position(document.lineCount, 0)
+    );
+    
+    const diagnostic = new vscode.Diagnostic(
+      range,
+      `[${result.level}] ${result.suggestion}`,
+      getSeverity(result.level)
+    );
+    
+    diagnostic.source = 'AI Review';
+    diagnostics.push(diagnostic);
+  });
+
+  const collection = vscode.languages.createDiagnosticCollection('ai-review');
+  collection.set(document.uri, diagnostics);
+};
+
+const getSeverity = (level: string) => {
+  return {
+    'high': vscode.DiagnosticSeverity.Error,
+    'medium': vscode.DiagnosticSeverity.Warning,
+    'low': vscode.DiagnosticSeverity.Information
+  }[level] || vscode.DiagnosticSeverity.Hint;
+};
+Webview 面板（生成完整报告）​
+
+typescript
+const showReportPanel = (content: string) => {
+  const panel = vscode.window.createWebviewPanel(
+    'aiReviewReport',
+    'AI Code Review Report',
+    vscode.ViewColumn.Two,
+    { enableScripts: true }
+  );
+
+  panel.webview.html = `<!DOCTYPE html>
+  <html>
+  <style>
+    .critical { color: #ff4444; border-left: 3px solid red; }
+    .highlight { background: #fff3d4; }
+  </style>
+  <body>
+    <h1>代码审查报告</h1>
+    <pre>${content}</pre>
+    <button onclick="exportMarkdown()">导出为MD</button>
+    <script>
+      function exportMarkdown() { 
+        vscode.postMessage({ command: 'export' }) 
+      }
+    </script>
+  </body>
+  </html>`;
+};
+三、发布与维护优化
+1. 配置菜单项和快捷键
+
+json
+// package.json
+"contributes": {
+  "commands": [{
+    "command": "aireview.analyzeFile",
+    "title": "AI 代码审查 - 当前文件"
+  }],
+  "keybindings": [{
+    "command": "aireview.analyzeFile",
+    "key": "ctrl+shift+r",
+    "when": "editorTextFocus"
+  }]
+}
+2. 性能优化措施
+
+typescript
+// 控制发送频率（lodash.throttle）
+import { throttle } from 'lodash';
+const throttledAnalyze = throttle(analyzeCode, 10000);
+
+// 大文件分块处理
+const chunkSize = 3000;
+const codeChunks = [];
+for (let i = 0; i < code.length; i += chunkSize) {
+  codeChunks.push(code.substring(i, i + chunkSize));
+}
+3. 安全验证
+
+typescript
+// 使用VSCode安全存储API
+const key = await vscode.authentication.getSession('github', ['user:email']);
+const secureStorage = context.secrets;
+await secureStorage.store('openai_key', apiKey);
+const storedKey = await secureStorage.get('openai_key');
+四、扩展功能推荐
+​多模型支持
+typescript
+// 切换模型基座
+const modelConfig = {
+  openai: { endpoint: 'https://api.openai.com/v1' },
+  gemini: { endpoint: 'https://generativelanguage.googleapis.com/v1' }
+};
+​本地缓存系统
+typescript
+// 设置缓存有效期
+class ReviewCache {
+  constructor(private context: vscode.ExtensionContext) {}
+  
+  get(codeHash: string) {
+    return this.context.globalState.get(`cache_${codeHash}`);
+  }
+  
+  set(codeHash: string, data: any) {
+    this.context.globalState.update(`cache_${codeHash}`, data);
+  }
+}
+​自定义规则叠加
+typescript
+// 加载用户自定义规则
+const customRules = vscode.workspace.getConfiguration('aireview').get('customRules');
+const combinedPrompt = `${basePrompt}\n特别注意下列规则:\n${customRules}`;
+五、学习路线提升
+​必学 API
+vscode.languages.registerCodeActionsProvider 创建快速修复建议
+vscode.env.openExternal 对接文档系统
+vscode.window.createTreeView 创建侧边栏评分面板
+​推荐技术栈深化
+markdown
+- 代码解析: AST分析（使用@babel/parser）
+- AI增强: 使用LangChain构建智能化流程
+- 前端组件: Svelte/Vue3构建复杂Webview界面
+​调试技巧
+json
+// .vscode/launch.json
+"configurations": [{
+  "args": ["--disable-extensions"], // 隔离环境调试
+  "console": "integratedTerminal",  // 完整日志输出
+  "outputCapture": "std"
+}]
+通过实现这些功能模块，您将构建出一个能识别代码潜在问题、提供智能改进建议的AI审查工具。实际开发中可以结合团队需求添加自定义规则库、代码风格检查优化等功能。

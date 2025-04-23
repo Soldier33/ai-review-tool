@@ -1,4 +1,5 @@
 1. 在编辑器右键菜单添加'AI代码审查'选项，通过状态栏实时显示分析进度；
 2. 诊断结果采用三栏布局（问题分类/代码片段/优化建议），使用TreeDataProvider实现可折叠的条目；
 3. 集成到Problems面板并通过decoration API显示行内标记；
-4. 在设置页(configuration.json)添加审查严格度、语言偏好等选项；5. 通过CodeLens在函数上方显示综合评分。
+4. 在设置页(configuration.json)添加审查严格度、语言偏好等选项；
+5. 通过CodeLens在函数上方显示综合评分。

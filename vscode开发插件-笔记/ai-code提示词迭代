@@ -1,15 +1,5 @@
 
 
-
-npm install -g yo generator-code
-​作用：安装创建 VSCode 插件所需的脚手架工具
-​分解说明：
-yo: 一个流行的项目脚手架工具（Yeoman 的命令行工具）
-generator-code: 专门用于生成 VSCode 插件模板的生成器
--g: 全局安装，后续可在任何目录创建项目
-
-完整的、可立即运行的 TypeScript 插件项目模板
-
 # 最终生成以下关键文件
 Created my-ai-review/
 ├── .vscode/
@@ -19,21 +9,6 @@ Created my-ai-review/
 ├── package.json       # 包含插件元数据、依赖、激活事件等
 └── tsconfig.json      # TypeScript 编译配置
 
-ai-review-tool
-
-? What type of extension do you want to create? New Extension (TypeScript)
-? What's the name of your extension? my-ai-review
-? What's the identifier of your extension? ai-review-tool
-? What's the description of your extension? ai-review-tool
-? Initialize a git repository? Yes
-? Which bundler to use? esbuild
-? Which package manager to use? pnpm
-
-
-? Which bundler to use? 
-  unbundled 
-❯ webpack 
-  esbuild 
 
 Prompts:
   我要做一个VSCode插件，功能是让Ai Code Review代码,请用非常简洁的语言描述这个插件的核心作用，以此作为项目描述。
@@ -43,14 +18,9 @@ Prompts:
   在VSCode插件项目中，“利用AI技术自动审查代码，提供代码质量反馈和改进建议”技术架构可以怎么实现，请给我几个选项。
 
 
-  第三方AI API集成：
-利用现有的AI API（如OpenAI、Google AI等）进行代码审查。
-优点：快速集成，利用成熟的AI技术。
-缺点：依赖第三方服务，可能有使用限制和费用。
-插件扩展与社区协作：
 通过插件扩展机制，允许用户选择和集成不同的AI服务。
 优点：灵活性高，用户可以根据需求选择合适的AI服务。
-缺点：需要设计良好的扩展接口，可能增加开发复杂度。
+
 
 
 接下来是更详细的需求，详细列出要做的事项，包括：
